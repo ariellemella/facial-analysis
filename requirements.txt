@@ -1,0 +1,6 @@
+viam-sdk
+deepface
+numpy
+pillow
+tensorflow==2.14.0rc1
+ml_dtypes==0.2.0
