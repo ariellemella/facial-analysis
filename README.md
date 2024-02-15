@@ -61,4 +61,5 @@ results: A list of dictionaries, where each dictionary represents the analysis r
                 'middle eastern': 3.088453598320484,
                 'white': 2.44925880432129
               }
+}
 ```
