@@ -18,7 +18,7 @@ Python3 >= 3.11.7
 
 The following attributes may be configured as facial-detector config attributes, one at a time: 
 **demography**: "gender", "race", "emotion", or "age" 
-**dominant_demography**: "dominant_gender", "dominant_race", "dominant_emotion", or age
+**dominant_demography**: "dominant_gender", "dominant_race", "dominant_emotion", or "age"
 <img width="615" alt="visionmodule" src="https://github.com/ariellemella/facial-analysis/assets/105662831/9d799482-19d4-44ee-8e39-b64da80553f9">
 
 For example, 
