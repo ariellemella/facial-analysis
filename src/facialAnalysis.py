@@ -8,7 +8,6 @@ from deepface import DeepFace
 from deepface.extendedmodels import Emotion
 
 from viam.media.video import RawImage
-from viam.proto.common import PointCloudObject
 from viam.proto.service.vision import Classification, Detection
 from viam.resource.types import RESOURCE_NAMESPACE_RDK, RESOURCE_TYPE_SERVICE, Subtype
 from viam.utils import ValueTypes
@@ -66,10 +65,21 @@ class facialAnalysis(Vision, Reconfigurable):
     # Validates JSON Configuration
     @classmethod
     def validate(cls, config: ComponentConfig):
+        demographies = ['age', 'race', 'gender', 'emotion']
+        demography = config.attributes.fields["demography"].string_value or 'emotion'
+        if not demography in demographies:
+            raise Exception("demography must be 'age', 'race', 'gender', or 'emotion'")
+        
+        dominant_demographies = ['age', 'dominant_race', 'dominant_gender', 'dominant_emotion']
+        dominant_demography = config.attributes.fields["dominant_demography"].string_value or 'dominant_emotion'
+        if not dominant_demography in dominant_demographies:
+            raise Exception("dominant demography must be 'age', 'dominant_race', 'dominant_gender', or 'dominant_emotion'")
+
         backends = ['opencv']
         detector_backend = config.attributes.fields["detector_backend"].string_value or 'opencv'
         if not detector_backend in backends:
             raise Exception("detector_backend must be 'opencv'")
+        
         models =  ["VGG-Face", "Facenet", "Facenet512", "OpenFace", "DeepFace", "DeepID", "ArcFace", "Dlib", "SFace"]
         model_name = config.attributes.fields["recognition_model"].string_value or 'ArcFace'
         if not model_name in models:
@@ -78,19 +88,20 @@ class facialAnalysis(Vision, Reconfigurable):
 
     # Handles attribute reconfiguration
     def reconfigure(self, config: ComponentConfig, dependencies: Mapping[ResourceName, ResourceBase]):
-        # here we initialize the resource instance, the following is just an example and should be updated as needed
         self.DEPS = dependencies
-        self.detector_backend = config.attributes.fields["detector_backend"].string_value or 'ssd'
+        self.detector_backend = config.attributes.fields["detector_backend"].string_value or 'opencv'
         self.model_name = config.attributes.fields["recognition_model"].string_value or 'ArcFace'
+        self.demography = config.attributes.fields["demography"].string_value or 'emotion'
+        self.dominant_demography = config.attributes.fields["dominant_demography"].string_value or 'dominant_emotion'
+
        
 
-    # Methods the Viam RDK defines for the Vision API (rdk:service:vision)
-    
+    # Methods the Viam RDK defines for the Vision API (rdk:service:vision) 
     async def get_detections_from_camera(
         self, camera_name: str, *, extra: Optional[Mapping[str, Any]] = None, timeout: Optional[float] = None
     ) -> List[Detection]:
-        actual_cam = self.DEPS[Camera.get_resource_name(camera_name)]
-        cam = cast(Camera, actual_cam)
+        viam_cam = self.DEPS[Camera.get_resource_name(camera_name)]
+        cam = cast(Camera, viam_cam)
         cam_image = await cam.get_image(mime_type="image/jpeg")
         return await self.get_detections(cam_image)
 
@@ -102,9 +113,24 @@ class facialAnalysis(Vision, Reconfigurable):
         extra: Optional[Mapping[str, Any]] = None,
         timeout: Optional[float] = None,
     ) -> List[Detection]:
-        return
-            ################################# analyze methods
+        detections = []
 
+        results = DeepFace.analyze(
+            img_path=numpy.array(image.convert('RGB')),
+            actions= self.demography,
+            detector_backend= self.detector_backend,
+            enforce_detection=False,
+            align=True,
+        )
+
+        for r in results: 
+            if r["face_confidence"] > 0.4: 
+                detection = { "confidence": r["face_confidence"]*10, "class_name": r[self.dominant_demography], "x_min": r["region"]["x"], "y_min": r["region"]["y"], 
+                "x_max": r["region"]["x"] + r["region"]["w"], "y_max": r["region"]["y"] + r["region"]["h"]}
+                detections.append(detection)
+
+        LOGGER.info(detections)
+        return detections
     
     async def get_classifications_from_camera(self):
         return
