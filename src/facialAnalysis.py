@@ -24,7 +24,6 @@ from viam.components.camera import Camera
 
 from viam.logging import getLogger
 
-import time
 import asyncio
 import numpy
 
