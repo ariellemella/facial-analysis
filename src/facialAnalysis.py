@@ -24,11 +24,14 @@ from viam.components.camera import Camera
 
 from viam.logging import getLogger
 
-import time
 import asyncio
 import numpy
 
 LOGGER = getLogger(__name__)
+
+demographies = ['age', 'race', 'gender', 'emotion']
+dominant_demographies = ['age', 'dominant_race', 'dominant_gender', 'dominant_emotion']
+demography_map = dict(zip(demographies, dominant_demographies))
 
 class facialAnalysis(Vision, Reconfigurable):
     
@@ -47,13 +50,9 @@ class facialAnalysis(Vision, Reconfigurable):
     
     detector_backend: str   #face detector backend. Options: 'opencv', 'retinaface',
                             #'mtcnn', 'ssd', 'dlib', 'mediapipe', 'yolov8'.
-
-    distance_metric: str    #Metric for measuring similarity. Options: 'cosine',
-                            #'euclidean', 'euclidean_l2'.
     
     align: bool             #Perform alignment based on the eye positions.            
     silent: bool            #Suppress or allow some log messages for a quieter analysis process.
-
 
     # Constructor
     @classmethod
@@ -65,25 +64,20 @@ class facialAnalysis(Vision, Reconfigurable):
     # Validates JSON Configuration
     @classmethod
     def validate(cls, config: ComponentConfig):
-        demographies = ['age', 'race', 'gender', 'emotion']
+              
         demography = config.attributes.fields["demography"].string_value or 'emotion'
         if not demography in demographies:
-            raise Exception("demography must be 'age', 'race', 'gender', or 'emotion'")
-        
-        dominant_demographies = ['age', 'dominant_race', 'dominant_gender', 'dominant_emotion']
-        dominant_demography = config.attributes.fields["dominant_demography"].string_value or 'dominant_emotion'
-        if not dominant_demography in dominant_demographies:
-            raise Exception("dominant demography must be 'age', 'dominant_race', 'dominant_gender', or 'dominant_emotion'")
+            raise Exception("demography must be one of the following: 'age', 'race', 'gender', or 'emotion'")
 
-        backends = ['opencv']
+        backends = ['opencv', 'retinaface','mtcnn', 'ssd', 'dlib', 'mediapipe', 'yolov8']
         detector_backend = config.attributes.fields["detector_backend"].string_value or 'opencv'
         if not detector_backend in backends:
-            raise Exception("detector_backend must be 'opencv'")
+            raise Exception("detector_backend must be one of the following: 'opencv', 'retinaface','mtcnn', 'ssd', 'dlib', 'mediapipe', 'yolov8'.")
         
         models =  ["VGG-Face", "Facenet", "Facenet512", "OpenFace", "DeepFace", "DeepID", "ArcFace", "Dlib", "SFace"]
         model_name = config.attributes.fields["recognition_model"].string_value or 'ArcFace'
         if not model_name in models:
-            raise Exception("detector_backend must be one of 'VGG-Face', 'Facenet', 'Facenet512', 'OpenFace', 'DeepFace', 'DeepID', 'ArcFace', 'Dlib', 'SFace'")
+            raise Exception("detector_backend must be one of the following: 'VGG-Face', 'Facenet', 'Facenet512', 'OpenFace', 'DeepFace', 'DeepID', 'ArcFace', 'Dlib', 'SFace'")
         return
 
     # Handles attribute reconfiguration
@@ -93,8 +87,6 @@ class facialAnalysis(Vision, Reconfigurable):
         self.model_name = config.attributes.fields["recognition_model"].string_value or 'ArcFace'
         self.demography = config.attributes.fields["demography"].string_value or 'emotion'
         self.dominant_demography = config.attributes.fields["dominant_demography"].string_value or 'dominant_emotion'
-
-       
 
     # Methods the Viam RDK defines for the Vision API (rdk:service:vision) 
     async def get_detections_from_camera(
@@ -122,10 +114,10 @@ class facialAnalysis(Vision, Reconfigurable):
             enforce_detection=False,
             align=True,
         )
-
+                                    
         for r in results: 
             if r["face_confidence"] > 0.4: 
-                detection = { "confidence": r["face_confidence"]*10, "class_name": r[self.dominant_demography], "x_min": r["region"]["x"], "y_min": r["region"]["y"], 
+                detection = { "confidence": r["face_confidence"]*10, "class_name": r[demography_map[self.demography]], "x_min": r["region"]["x"], "y_min": r["region"]["y"], 
                 "x_max": r["region"]["x"] + r["region"]["w"], "y_max": r["region"]["y"] + r["region"]["h"]}
                 detections.append(detection)
 
