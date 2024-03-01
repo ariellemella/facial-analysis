@@ -118,7 +118,7 @@ class facialAnalysis(Vision, Reconfigurable):
         for r in results: 
             dom = r[demography_map[self.demography]]
             if r["face_confidence"] > 0.4: 
-                detection = { "confidence": r["face_confidence"]*10, "class_name": str(r[dom]), "x_min": r["region"]["x"], "y_min": r["region"]["y"], 
+                detection = { "confidence": r["face_confidence"]*10, "class_name": str(dom), "x_min": r["region"]["x"], "y_min": r["region"]["y"], 
                 "x_max": r["region"]["x"] + r["region"]["w"], "y_max": r["region"]["y"] + r["region"]["h"]}
                 detections.append(detection)
 
@@ -136,4 +136,3 @@ class facialAnalysis(Vision, Reconfigurable):
     
     async def do_command(self):
         return
-

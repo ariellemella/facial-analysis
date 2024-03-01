@@ -5,6 +5,7 @@ if [ -f .installed ]
   then
     source viam-env/bin/activate
   else
+    pip install --upgrade pip
     python3 -m pip install --user virtualenv
     python3 -m venv viam-env
     source viam-env/bin/activate
