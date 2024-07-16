@@ -18,7 +18,7 @@ from viam.proto.common import ResourceName
 from viam.resource.base import ResourceBase
 from viam.resource.types import Model, ModelFamily
 
-from viam.services.vision import Vision, CaptureAllResult 
+from viam.services.vision import Vision
 from viam.components.camera import Camera
 
 from viam.logging import getLogger
