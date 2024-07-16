@@ -3,11 +3,10 @@ from typing_extensions import Self
 
 from typing import Any, Final, List, Mapping, Optional, Union
 
-from PIL import Image
+from viam.media.video import ViamImage
 from deepface import DeepFace
 from deepface.extendedmodels import Emotion
 
-from viam.media.video import RawImage
 from viam.proto.service.vision import Classification, Detection
 from viam.resource.types import RESOURCE_NAMESPACE_RDK, RESOURCE_TYPE_SERVICE, Subtype
 from viam.utils import ValueTypes
@@ -19,7 +18,7 @@ from viam.proto.common import ResourceName
 from viam.resource.base import ResourceBase
 from viam.resource.types import Model, ModelFamily
 
-from viam.services.vision import Vision
+from viam.services.vision import Vision, CaptureAllResult 
 from viam.components.camera import Camera
 
 from viam.logging import getLogger
@@ -38,21 +37,10 @@ class facialAnalysis(Vision, Reconfigurable):
     MODEL: ClassVar[Model] = Model(ModelFamily("arielle", "detector"), "facial-analysis")
     
     # Class Variables
-    img_path: str           #The exact path to the image, a numpy array in BGR format,
-                            #or a base64 encoded image. If the source image contains multiple faces, the result will
-                            #include information for each detected face.
-    
-    actions: tuple          #Attributes to analyze. The default is ('age', 'gender', 'emotion', 'race').
-                            #You can exclude some of these attributes from the analysis if needed.
-    
-    enforce_detection: bool #If no face is detected in an image, raise an exception.
-                            #Default is True. Set to False to avoid the exception for low-resolution images.
-    
-    detector_backend: str   #face detector backend. Options: 'opencv', 'retinaface',
-                            #'mtcnn', 'ssd', 'dlib', 'mediapipe', 'yolov8'.
-    
-    align: bool             #Perform alignment based on the eye positions.            
-    silent: bool            #Suppress or allow some log messages for a quieter analysis process.
+
+    demography: str
+    model_name: str
+    detector_backend: str
 
     # Constructor
     @classmethod
@@ -77,7 +65,7 @@ class facialAnalysis(Vision, Reconfigurable):
         models =  ["VGG-Face", "Facenet", "Facenet512", "OpenFace", "DeepFace", "DeepID", "ArcFace", "Dlib", "SFace"]
         model_name = config.attributes.fields["recognition_model"].string_value or 'ArcFace'
         if not model_name in models:
-            raise Exception("detector_backend must be one of the following: 'VGG-Face', 'Facenet', 'Facenet512', 'OpenFace', 'DeepFace', 'DeepID', 'ArcFace', 'Dlib', 'SFace'")
+            raise Exception("recognition_model must be one of the following: 'VGG-Face', 'Facenet', 'Facenet512', 'OpenFace', 'DeepFace', 'DeepID', 'ArcFace', 'Dlib', 'SFace'")
         return
 
     # Handles attribute reconfiguration
@@ -100,7 +88,7 @@ class facialAnalysis(Vision, Reconfigurable):
     
     async def get_detections(
         self,
-        image: Union[Image.Image, RawImage],
+        image: ViamImage,
         *,
         extra: Optional[Mapping[str, Any]] = None,
         timeout: Optional[float] = None,
@@ -109,7 +97,7 @@ class facialAnalysis(Vision, Reconfigurable):
 
         results = DeepFace.analyze(
             img_path=numpy.array(image.convert('RGB')),
-            actions= self.demography,
+            actions= [self.demography],
             detector_backend= self.detector_backend,
             enforce_detection=False,
             align=True,
