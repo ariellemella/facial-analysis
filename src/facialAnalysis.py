@@ -106,9 +106,15 @@ class facialAnalysis(Vision, Reconfigurable):
         for r in results: 
             dom = r[demography_map[self.demography]]
             if r["face_confidence"] > 0.4: 
-                detection = { "confidence": r["face_confidence"]*10, "class_name": str(dom), "x_min": r["region"]["x"], "y_min": r["region"]["y"], 
+                LOGGER.error(r)
+                if (self.demography == "age"):
+                    detection = { "confidence": 1.00, "class_name": str(dom), "x_min": r["region"]["x"], "y_min": r["region"]["y"], 
+                "x_max": r["region"]["x"] + r["region"]["w"], "y_max": r["region"]["y"] + r["region"]["h"]}
+                else:
+                    detection = { "confidence": r[self.demography][dom] * .01, "class_name": str(dom), "x_min": r["region"]["x"], "y_min": r["region"]["y"], 
                 "x_max": r["region"]["x"] + r["region"]["w"], "y_max": r["region"]["y"] + r["region"]["h"]}
                 detections.append(detection)
+
 
         LOGGER.info(detections)
         return detections
